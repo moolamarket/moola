@@ -1,0 +1,35 @@
+{
+  "name": "aave-protocol-celo",
+  "version": "1.0.0",
+  "description": "Aave protocol adaptaion for Celo blockchain",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moolamarket/moola.git"
+  },
+  "keywords": [
+    "aave",
+    "moola",
+    "celo"
+  ],
+  "author": "Oleksii Matiiasevych <oleksii@ambisafe.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/moolamarket/moola/issues"
+  },
+  "homepage": "https://github.com/moolamarket/moola#readme",
+  "dependencies": {
+    "@openzeppelin/contracts": "2.4.0",
+    "truffle": "^5.1.50"
+  },
+  "devDependencies": {
+    "@celo/contractkit": "^0.4.17"
+  }
+}

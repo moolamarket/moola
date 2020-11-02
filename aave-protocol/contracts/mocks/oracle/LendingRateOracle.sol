@@ -1,9 +1,10 @@
 pragma solidity ^0.5.0;
 
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "../../interfaces/ILendingRateOracle.sol";
 
 
-contract LendingRateOracle is ILendingRateOracle {
+contract LendingRateOracle is ILendingRateOracle, Ownable {
 
     mapping(address => uint256) borrowRates;
     mapping(address => uint256) liquidityRates;
@@ -13,7 +14,7 @@ contract LendingRateOracle is ILendingRateOracle {
         return borrowRates[_asset];
     }
 
-    function setMarketBorrowRate(address _asset, uint256 _rate) external {
+    function setMarketBorrowRate(address _asset, uint256 _rate) external onlyOwner {
         borrowRates[_asset] = _rate;
     }
 
@@ -21,7 +22,7 @@ contract LendingRateOracle is ILendingRateOracle {
         return liquidityRates[_asset];
     }
 
-    function setMarketLiquidityRate(address _asset, uint256 _rate) external {
+    function setMarketLiquidityRate(address _asset, uint256 _rate) external onlyOwner {
         liquidityRates[_asset] = _rate;
     }
 }
