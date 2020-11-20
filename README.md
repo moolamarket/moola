@@ -1,5 +1,34 @@
 # moola
 
+## Cli Usage
+
+Private key might not be needed to send transactions if prive node URL provided.
+
+```
+cd aave-protocol && npm install
+node cli
+
+Usage: test|main|URL action params
+Available actions:
+balanceOf celo|cusd address
+getUserReserveData celo|cusd address
+getReserveData celo|cusd
+getUserAccountData celo|cusd address
+deposit celo|cusd address amount [privateKey]
+borrow celo|cusd address amount stable|variable [privateKey]
+repay celo|cusd address amount|all [privateKey]
+redeem celo|cusd address amount|all [privateKey]
+```
+
+### Example usage
+
+```
+node cli test getUserAccountData 0xd7ec16ff15cA494e7B5901CcDc62e86775401A89
+node cli test getUserReserveData celo 0xD1F14A379F3e8dDFFF32c336153AEb984acecD25
+node cli test getReserveData cusd
+node cli test balanceOf cusd 0xd7ec16ff15cA494e7B5901CcDc62e86775401A89
+```
+
 ## Mainnet deployment and testing log.
 
 ```

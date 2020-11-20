@@ -27,6 +27,7 @@
   "homepage": "https://github.com/moolamarket/moola#readme",
   "dependencies": {
     "@openzeppelin/contracts": "2.4.0",
+    "bignumber.js": "^9.0.1",
     "truffle": "^5.1.50"
   },
   "devDependencies": {
