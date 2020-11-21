@@ -1,8 +1,8 @@
 const { newKit } = require('@celo/contractkit');
-const LendingPoolAddressesProvider = require('./build/contracts/LendingPoolAddressesProvider.json');
-const LendingPool = require('./build/contracts/LendingPool.json');
-const LendingPoolCore = require('./build/contracts/LendingPoolCore.json');
-const AToken = require('./build/contracts/AToken.json');
+const LendingPoolAddressesProvider = require('./abi/LendingPoolAddressesProvider.json');
+const LendingPool = require('./abi/LendingPool.json');
+const LendingPoolCore = require('./abi/LendingPoolCore.json');
+const AToken = require('./abi/AToken.json');
 const BigNumber = require('bignumber.js');
 
 const INTEREST_RATE = {
@@ -54,11 +54,11 @@ async function execute(network, action, ...params) {
   switch (network) {
     case 'test':
       kit = newKit('https://alfajores-forno.celo-testnet.org');
-      addressProvider = new kit.web3.eth.Contract(LendingPoolAddressesProvider.abi, '0x6EAE47ccEFF3c3Ac94971704ccd25C7820121483');
+      addressProvider = new kit.web3.eth.Contract(LendingPoolAddressesProvider, '0x6EAE47ccEFF3c3Ac94971704ccd25C7820121483');
       break;
     case 'main':
       kit = newKit('https://forno.celo.org');
-      addressProvider = new kit.web3.eth.Contract(LendingPoolAddressesProvider.abi, '0x7AAaD5a5fa74Aec83b74C2a098FBC86E17Ce4aEA');
+      addressProvider = new kit.web3.eth.Contract(LendingPoolAddressesProvider, '0x7AAaD5a5fa74Aec83b74C2a098FBC86E17Ce4aEA');
       break;
     default:
       try {
@@ -68,7 +68,7 @@ async function execute(network, action, ...params) {
         console.info(`Available networks: test, main, or custom node URL.`);
         return;
       }
-      addressProvider = new kit.web3.eth.Contract(LendingPoolAddressesProvider.abi, '0x7AAaD5a5fa74Aec83b74C2a098FBC86E17Ce4aEA');
+      addressProvider = new kit.web3.eth.Contract(LendingPoolAddressesProvider, '0x7AAaD5a5fa74Aec83b74C2a098FBC86E17Ce4aEA');
       privateKeyRequired = false;
   }
   const web3 = kit.web3;
@@ -76,8 +76,8 @@ async function execute(network, action, ...params) {
 
   const CELO = await kit.contracts.getGoldToken();
   const cUSD = await kit.contracts.getStableToken();
-  const lendingPool = new eth.Contract(LendingPool.abi, await addressProvider.methods.getLendingPool().call());
-  const lendingPoolCore = new eth.Contract(LendingPoolCore.abi, await addressProvider.methods.getLendingPoolCore().call());
+  const lendingPool = new eth.Contract(LendingPool, await addressProvider.methods.getLendingPool().call());
+  const lendingPoolCore = new eth.Contract(LendingPoolCore, await addressProvider.methods.getLendingPoolCore().call());
   const tokens = {
     celo: CELO,
     cusd: cUSD,
@@ -140,8 +140,8 @@ async function execute(network, action, ...params) {
       StableRate: printRay(data.stableBorrowRate),
       AverageStableRate: printRay(data.averageStableBorrowRate),
       UtilizationRate: printRay(data.utilizationRate),
-      LiquidityIndex: print(data.liquidityIndex),
-      VariableBorrowIndex: print(data.variableBorrowIndex),
+      LiquidityIndex: printRay(data.liquidityIndex),
+      VariableBorrowIndex: printRay(data.variableBorrowIndex),
       MToken: data.aTokenAddress,
       LastUpdate: (new Date(BN(data.lastUpdateTimestamp).multipliedBy(1000).toNumber())).toLocaleString(),
     };
@@ -213,7 +213,7 @@ async function execute(network, action, ...params) {
   }
   if (action == 'redeem') {
     const reserve = reserves[params[0]];
-    const mtoken = new eth.Contract(AToken.abi, (await lendingPool.methods.getReserveData(reserve).call()).aTokenAddress);
+    const mtoken = new eth.Contract(AToken, (await lendingPool.methods.getReserveData(reserve).call()).aTokenAddress);
     const user = params[1];
     const amount = params[2] === 'all' ? maxUint256 : web3.utils.toWei(params[2]);
     if (privateKeyRequired) {
