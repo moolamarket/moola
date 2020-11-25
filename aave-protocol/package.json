@@ -28,6 +28,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "2.4.0",
     "bignumber.js": "^9.0.1",
+    "bluebird": "^3.7.2",
     "truffle": "^5.1.50"
   },
   "devDependencies": {

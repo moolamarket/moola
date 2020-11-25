@@ -4,6 +4,7 @@ const LendingPool = require('./abi/LendingPool.json');
 const LendingPoolCore = require('./abi/LendingPoolCore.json');
 const AToken = require('./abi/AToken.json');
 const BigNumber = require('bignumber.js');
+const Promise = require('bluebird');
 
 const INTEREST_RATE = {
   NONE: 0,
@@ -41,6 +42,16 @@ function printActions() {
   console.info('repay celo|cusd address amount|all [privateKey]');
   console.info('redeem celo|cusd address amount|all [privateKey]');
 }
+
+const retry = async (fun, tries = 5) => {
+  try {
+    return await fun();
+  } catch(err) {
+    if (tries == 0) throw err;
+    await Promise.delay(1000);
+    return retry(fun, tries - 1);
+  }
+};
 
 async function execute(network, action, ...params) {
   if (network === undefined) {
@@ -157,9 +168,22 @@ async function execute(network, action, ...params) {
       kit.addAccount(params[3]);
     }
     if (params[0] === 'celo') {
+      try {
+        await retry(() => lendingPool.methods.deposit(reserve, amount, 0).estimateGas({from: user, gas: 1000000, value: amount}));
+      } catch (err) {
+        console.log('Cannot deposit', err.message);
+        return;
+      }
       console.log('Deposit', (await lendingPool.methods.deposit(reserve, amount, 0).send({from: user, gas: 1000000, value: amount})).transactionHash);
     } else {
       console.log('Approve', (await (await token.approve(lendingPoolCore.options.address, amount).send({from: user, gas: 1000000})).receiptFuture.promise).transactionHash);
+      try {
+        await retry(() => lendingPool.methods.deposit(reserve, amount, 0).estimateGas({from: user, gas: 1000000}));
+      } catch (err) {
+        console.log('Revoke approve', (await (await token.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 1000000})).receiptFuture.promise).transactionHash);
+        console.log('Cannot deposit', err.message);
+        return;
+      }
       console.log('Deposit', (await lendingPool.methods.deposit(reserve, amount, 0).send({from: user, gas: 1000000})).transactionHash);
     }
     return;
@@ -173,7 +197,7 @@ async function execute(network, action, ...params) {
       kit.addAccount(params[4]);
     }
     try {
-      await lendingPool.methods.borrow(reserve, amount, rate, 0).estimateGas({from: user, gas: 1000000});
+      await retry(() => lendingPool.methods.borrow(reserve, amount, rate, 0).estimateGas({from: user, gas: 1000000}));
     } catch (err) {
       console.log('Cannot borrow', err.message);
       return;
@@ -190,7 +214,8 @@ async function execute(network, action, ...params) {
     if (params[0] === 'celo') {
       value = amount;
       if (amount === maxUint256) {
-        value = BN((await lendingPool.methods.getUserReserveData(reserve, user).call()).currentBorrowBalance).multipliedBy('1.001').toFixed(0);
+        const reserveData = await lendingPool.methods.getUserReserveData(reserve, user).call();
+        value = BN(reserveData.currentBorrowBalance).multipliedBy('1.001').plus(reserveData.originationFee).toFixed(0);
       }
     }
     if (privateKeyRequired) {
@@ -200,8 +225,9 @@ async function execute(network, action, ...params) {
       console.log('Approve', (await (await token.approve(lendingPoolCore.options.address, amount).send({from: user, gas: 1000000})).receiptFuture.promise).transactionHash);
     }
     try {
-      await lendingPool.methods.repay(reserve, amount, user).estimateGas({from: user, gas: 1000000, value});
+      await retry(() => lendingPool.methods.repay(reserve, amount, user).estimateGas({from: user, gas: 1000000, value}));
     } catch (err) {
+      console.log('Revoke approve', (await (await token.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 1000000})).receiptFuture.promise).transactionHash);
       console.log('Cannot repay', err.message);
       return;
     }
@@ -220,7 +246,7 @@ async function execute(network, action, ...params) {
       kit.addAccount(params[3]);
     }
     try {
-      await mtoken.methods.redeem(amount).estimateGas({from: user, gas: 1000000});
+      await retry(() => mtoken.methods.redeem(amount).estimateGas({from: user, gas: 1000000}));
     } catch (err) {
       console.log('Cannot redeem', err.message);
       return;
@@ -229,6 +255,7 @@ async function execute(network, action, ...params) {
     return;
   }
   console.error(`Unknown action: ${action}`);
+  printActions();
 }
 
 execute(...process.argv.slice(2).map(arg => arg.toLowerCase()));
