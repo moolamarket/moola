@@ -228,3 +228,345 @@ Bob redeems cUSD.
 5.000642368434114098 Bob CELO balance.
 Test done.
 ```
+
+# Lending Pool
+The `LendingPool` contract is the main contract of the protocol. It exposes all the user-oriented actions that can be invoked using either Solidity or web3 libraries.
+
+Web3 code samples exclude the imports and transaction related parts to focus on methods interactions.
+
+## Methods
+### deposit()
+**`function deposit( address _reserve, uint256 _amount, uint16 _referralCode)`**
+
+Deposits a certain `_amount` of an asset specified by the `_reserve` parameter.
+
+The caller receives a certain amount of corresponding aTokens in exchange. The amount of aTokens received depends on the corresponding aToken **exchange rate**.
+
+For `_referralCode`, you can use: 0.
+
+> ❕ When depositing an ERC-20 token, the `LendingPoolCore` contract (which is **different** from the `LendingPool` contract) will need to have the relevant allowance via `approve()` of `_amount` for the underlying ERC20 of the `_reserve` asset you are depositing.
+
+|Parameter Name  |Type   |Description                                 |
+|----------------|-------|--------------------------------------------|
+|`_reserve`      |address|address of the underlying asset​             |
+|`_amount`       |uint256|amount deposited, expressed in decimal units|
+|`_referralCode` |uint256|referral code for our referral program      |
+
+### CELO deposits
+Our protocol doesn't use any ERC20 wrapper such as CELO duality token for CELO deposits, therefore amount parameter of `deposit()` method must match the `msg.value` parameter of the transaction, and be included in your `deposit()` call. 
+
+E.g: `lendingPool.deposit{ value: msg.value }(reserve, msg.value, referralCode)`
+
+> 🛈 Since CELO is used directly in the protocol, we use a mock address to indicate CELO: `0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE`
+
+### ERC20 deposits
+The `_reserve` parameter corresponds to the ERC20 contract address of the underlying asset.
+
+### setUserUseReserveAsCollateral()
+**`function setUserUseReserveAsCollateral(address _reserve, bool _useAsCollateral)`**
+
+Enable the user's specific deposit to be used as collateral. Users will only be able to disable deposits that are not currently being used as collateral.
+
+|Parameter Name     |Type   |Description                                             |
+|-------------------|-------|--------------------------------------------------------|
+|`_reserve`         |address|address of the underlying asset​                         |
+|`_useAsCollateral` |bool   |if true, the asset is allowed as a collateral for borrow|
+
+### borrow()
+**`function borrow(address _reserve, uint256 _amount, uint256 _interestRateMode, uint16 _referralCode)`**
+
+Transfers  a specific amount of the asset identified by the `_reserve` parameter to the `msg.sender`, provided that the caller has preemptively deposited enough collateral to cover the borrow.
+
+Every borrow can be opened with a **stable** or **variable** rate mode. Borrows have infinite duration and there is no repayment schedule. In case of price fluctuations, a borrow position is liquidated if the price of the collateral drops below a certain threshold.
+
+For `_referralCode`, you can use: 0.
+
+|Parameter Name     |Type   |Description                                             |
+|-------------------|-------|--------------------------------------------------------|
+|`_reserve`         |address|address of the underlying asset​                         |
+|`_amount`          |uint256|amount to borrow, expressed in decimal units            |
+|`_interestRateMode`|uint256|type of interest rate mode to use, with **2** representing variable rate and **1** representing stable rate|
+|`_referralCode`    |uint256|referral code for our referral program                  |
+
+### repay()
+**`function repay( address _reserve, uint256 _amount, address payable _onBehalfOf)`**
+
+Repay a borrowed asset, either fully or partially. The `_onBehalfOf` parameter can be used to repay the debt of a different user.
+
+> ❕ When a third-party is repaying another `user` debt on their behalf, the third-party address needs to `approve()` the `LendingPoolCore` contract (which is **different** from the `LendingPool` contract) with `_amount` of the underlying ERC20 of the  `_reserve` contract.
+
+|Parameter Name     |Type   |Description                                             |
+|-------------------|-------|--------------------------------------------------------|
+|`_reserve`         |address|address of the underlying asset​                         |
+|`_amount`          |uint256|amount to repay, expressed in decimal units. To repay the whole borrowed amount, the function accepts `uint(-1)` as a value for `_amount`, **ONLY** when the repayment is not executed on behalf of a 3rd party. In case of repayments on behalf of another user, it's recommended to send an `_amount` slightly higher than the current borrowed amount.|
+|`_onBehalfOf`      |address payable|address to repay on behalf of. If the caller is repaying their own loan, then this value should be equal to `msg.sender`|
+
+### swapBorrowRateMode()
+**`function swapBorrowRateMode(address _reserve)`**
+
+Swaps the `msg.sender`'s borrow rate modes between stable and variable.
+
+|Parameter Name     |Type   |Description                                             |
+|-------------------|-------|--------------------------------------------------------|
+|`_reserve`         |address|address of the underlying asset​                         |
+
+### rebalanceStableBorrowRate()
+**`function rebalanceStableBorrowRate(address _reserve, address _user)`**
+
+Rebalances the stable rate of `_user`. If the user is not borrowing at a stable rate or the conditions for the rebalance are not satisfied, the transaction gets reverted. 
+
+|Parameter Name     |Type   |Description                                             |
+|-------------------|-------|--------------------------------------------------------|
+|`_reserve`         |address|address of the underlying asset​                         |
+|`_user`            |address|address of the `user`​ to rebalance                      |
+
+### liquidationCall()
+**`function liquidationCall(address _collateral, address _reserve, address _user, uint256 _purchaseAmount, bool _receiveaToken)`**
+
+Liquidate positions with a **health factor** below 1.
+
+When the health factor of a position is below 1, liquidators repay part or all of the outstanding borrowed amount on behalf of the borrower, while **receiving a discounted amount of collateral** in return (also known as a liquidation 'bonus"). Liquidators can decide if they want to receive an equivalent amount of collateral mTokens, or the underlying asset directly. When the liquidation is completed successfully, the health factor of the position is increased, bringing the health factor above 1.
+
+> 🛈 Liquidators can only close a certain amount of collateral defined by a close factor. Currently the **close factor is 0.5**. In other words, liquidators can only liquidate a maximum of 50% of the amount pending to be repaid in a position. The discount for liquidating is in terms of this amount.
+
+> ❕ Liquidators must `approve()` the `LendingPoolCore` contract (which is **different** from the `LendingPool` contract) to use `_purchaseAmount` of the underlying ERC20 of the `_reserve` asset used for the liquidation.
+
+#### NOTES
+
+ - In most scenarios, profitable liquidators will choose to liquidate as
+   much as they can (50% of the `_user` position).
+   
+ -  `_purchaseAmount` parameter can be set to `uint(-1)` and the protocol will proceed with the highest possible liquidation allowed by the
+   close factor.
+   
+- For ETH liquidations, `msg.value` of the transaction should be equal to
+   the `_purchaseAmount` parameter.
+   
+- To check a user's health factor, use `getUserAccountData()`.
+
+|Parameter Name     |Type   |Description                                             |
+|-------------------|-------|--------------------------------------------------------|
+|`_collateral`      |address|address of the liquidated collateral reserve​            |
+|`_reserve`         |address|address of the underlying asset for the loan            |
+|`_user`            |address|address of the user borrowing                           |
+|`_purchaseAmount`  |uint256|amount of the discounted purchase                       |
+|`_receiveaToken`   |bool   |if true, the user receives the aTokens equivalent of the purchased collateral. If false, the user receives the underlying asset directly|
+
+### flashLoan()
+**`function flashLoan(address payable _receiver, address _reserve, uint _amount, bytes memory _params)`**
+
+Allows the calling contract to borrow (without collateral) from the `_reserve` pool,  a certain `_amount` of liquidity, that must be returned before the end of the transaction.
+
+Since the Flash Loan occurs within 1 transaction, it is only possible to call this function successfully on the smart contract level (i.e. Solidity or Vyper).
+
+Flash Loans incur a *fee* of 0.09% of the loan amount.
+
+|Parameter Name     |Type   |Description                                             |
+|-------------------|-------|--------------------------------------------------------|
+|`_receiver`        |address address of the `receiver` of the borrowed assets    ​    |
+|`_reserve`         |address|address of the underlying asset                         |
+|`_amount`          |uint256|amount to be received                                   |
+|`_params`          |bytes  |bytes-encoded extra parameters to use inside the `executeOperation()` function|
+
+## View Methods
+
+### getReserveConfigurationData()
+**`function getReserveConfigurationData(address _reserve)`**
+
+Returns specific reserve's configuration parameters.
+
+|`return` name              |Type   |Description                                             |
+|---------------------------|-------|--------------------------------------------------------|
+|ltv                        |uint256|Loan-to-value. Value in percentage|
+|liquidationThreshold       |uint256|liquidation threshold. Value in percentage              |
+|liquidationDiscount        |uint256|liquidation bonus. Value in percentage|
+|interestRateStrategyAddress|address|address of the contract defining the interest rate strategy|
+|usageAsCollateralEnabled   |bool   |if `true`, reserve asset can be used as collateral for borrowing|
+|borrowingEnabled           |bool   |if `true`, reserve asset can be borrowed|
+|stableBorrowRateEnabled    |bool   |if `true`, reserve asset can be borrowed with stable rate mode|
+|isActive                   |bool   |if `true`, users can interact with reserve asset|
+
+### getReserveData()
+**`function getReserveData(address _reserve)`**
+
+Returns global information on any asset `reserve` pool
+
+|`return` name              |Type   |Description                                             |
+|---------------------------|-------|--------------------------------------------------------|
+|totalLiquidity             |uint256|`reserve` total liquidity|
+|availableLiquidity         |uint256|`reserve` available liquidity for borrowing|
+|totalBorrowsStable         |uint256|total amount of outstanding borrows at Stable rate|
+|totalBorrowsVariable       |uint256|total amount of outstanding borrows at Variable rate|
+|liquidityRate              |uint256|current deposit APY of the `reserve` for depositors, in Ray units|
+|variableBorrowRate         |uint256|current variable rate APY of the `reserve` pool, in Ray units|
+|stableBorrowRate           |uint256|current stable rate APY of the `reserve` pool, in Ray units|
+|averageStableBorrowRate    |uint256|current average stable borrow rate|
+|utilizationRate            |uint256|expressed as total borrows/total liquidity|
+|liquidityIndex             |uint256|cumulative liquidity index|
+|variableBorrowIndex        |uint256|cumulative variable borrow index|
+|aTokenAddress              |address|mTokens contract address for the specific `_reserve`|
+|lastUpdateTimestamp        |uint40 |timestamp of the last update of `reserve` data|
+
+### getUserAccountData()
+**`function getUserAccountData(address _user)`**
+
+Returns information of a reserve exclusively related with a particular `user` address
+
+|`return` name              |Type   |Description                                             |
+|---------------------------|-------|--------------------------------------------------------|
+|totalLiquidityETH          |uint256|`user` aggregated deposits across all the reserves. In Wei|
+|totalCollateralETH         |uint256|`user` aggregated collateral across all the reserves. In Wei|
+|totalBorrowsETH            |uint256|`user` aggregated outstanding borrows across all the reserves. In Wei|
+|totalFeesETH               |uint256|`user` aggregated current outstanding fees in ETH. In Wei|
+|availableBorrowsETH        |uint256|`user` available amount to borrow in ETH|
+|currentLiquidationThreshold|uint256|`user` current average liquidation threshold across all the collaterals deposited|
+|ltv                        |uint256|`user` average Loan-to-Value between all the collaterals|
+|healthFactor               |uint256|`user` current Health Factor|
+
+### getUserReserveData()
+**`function getUserReserveData(address _reserve, address _user)`**
+
+Returns information related to the `user` data on a specific `reserve`
+
+
+|`return` name              |Type   |Description                                             |
+|---------------------------|-------|--------------------------------------------------------|
+|currentATokenBalance       |uint256|current `reserve` mToken balance|
+|currentBorrowBalance       |uint256|`user` current `reserve` outstanding borrow balance|
+|principalBorrowBalance     |uint256|`user` balance of borrowed asset|
+|borrowRateMode             |uint256|`user` borrow rate mode either Stable or Variable|
+|borrowRate                 |uint256|`user` current borrow rate APY|
+|liquidityRate              |uint256|`user` current earn rate on `_reserve`|
+|originationFee             |uint256|`user` outstanding loan origination fee|
+|variableBorrowIndex        |uint256|`user` variable cumulative index|
+|lastUpdateTimestamp        |uint256|Timestamp of the last data update|
+|usageAsCollateralEnabled   |bool   |Whether the user's current reserve is enabled as a collateral|
+
+### getReserves()
+**`function getReserves()`**
+
+Returns an array of all the active reserves addresses.
+
+## Emitted Events
+The `LendingPool` contract produces events that can be monitored on the Ethereum blockchain. For more information on emitted events and filters, refer to [the official solidity documentation.](https://solidity.readthedocs.io/en/latest/contracts.html#events)
+
+In Moola protocol, `reserve` is defined by the smart-contract of the asset used for the method interaction. 
+
+- A list of all smart-contract addresses is available in here. 
+- To avoid the usage of a CELO wrapper throughout the protocol (such as CELO duality token), a mock address is used for the CELO reserve: `0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE`
+
+### Deposit
+
+|`return` name    |Type   |Description                                             |
+|-----------------|-------|--------------------------------------------------------|
+|_reserve         |address|address of the underlying asset|
+|_user            |address|address of the `user`|
+|_amount          |uint256|amount deposited, in Wei|
+|_referral        |uint16 |`ReferralCode` for referral programs|
+|_timestamp       |uint256|timestamp of the transaction, in Unix time|
+
+### RedeemUnderlying
+
+|`return` name    |Type   |Description                                             |
+|-----------------|-------|--------------------------------------------------------|
+|_reserve         |address|address of the underlying asset|
+|_user            |address|address of the `user`|
+|_amount          |uint256|amount redeemed, in Wei|
+|_timestamp       |uint256|timestamp of the transaction, in Unix time|
+
+### Borrow
+
+|`return` name         |Type   |Description                                             |
+|----------------------|-------|--------------------------------------------------------|
+|_reserve              |address|address of the underlying asset|
+|_user                 |address|address of the `user`|
+|_amount               |uint256|amount borrowed, in Wei|
+|_borrowRateMode       |uint16 |interest rate mode `0` for None, `1` for stable and `2` for variable|
+|_borrowRate           |uint256|APY of the loan at the time of the `borrow()` call. in Wei|
+|_originationFee       |uint256|amount of the `originationFee` of the loan, in Ray units|
+|_borrowBalanceIncrease|uint256|amount of debt increased since the last update by the user, in Wei|
+|_referral             |uint16 |`ReferralCode` for referral programs|
+|_timestamp            |uint256|timestamp of the transaction, in Unix time|
+
+### Repay
+
+|`return` name         |Type   |Description                                             |
+|----------------------|-------|--------------------------------------------------------|
+|_reserve              |address|address of the underlying asset|
+|_user                 |address|address of the `user`|
+|_repayer              |address|address of the `repayer`|
+|_amountMinusFees      |uint256|amount repayed, without fees|
+|_fees                 |uint256|fees paid|
+|_borrowBalanceIncrease|uint256|amount of debt increased since the last update by the user, in Wei|
+|_timestamp            |uint256|timestamp of the transaction, in Unix time|
+
+### Swap
+
+|`return` name         |Type   |Description                                             |
+|----------------------|-------|--------------------------------------------------------|
+|_reserve              |address|address of the underlying asset|
+|_user                 |address|address of the `user`|
+|_newRateMode          |uint256|interest rate mode `0` for None, `1` for stable and `2` for variable|
+|_newRate              |uint256|updated Rate APY, in Ray units|
+|_borrowBalanceIncrease|uint256|amount of debt increased since the last update by the user, in Wei|
+|_timestamp            |uint256|timestamp of the transaction, in Unix time|
+
+### ReserveUsedAsCollateralEnabled
+
+|`return` name         |Type   |Description                                             |
+|----------------------|-------|--------------------------------------------------------|
+|_reserve              |address|address of the underlying asset|
+|_user                 |address|address of the `user`|
+
+### ReserveUsedAsCollateralDisabled
+
+|`return` name         |Type   |Description                                             |
+|----------------------|-------|--------------------------------------------------------|
+|_reserve              |address|address of the underlying asset|
+|_user                 |address|address of the `user`|
+
+### RebalanceStableBorrowRate
+
+|`return` name         |Type   |Description                                             |
+|----------------------|-------|--------------------------------------------------------|
+|_reserve              |address|address of the underlying asset|
+|_user                 |address|address of the `user`|
+|_newStableRate        |uint256|updated Rate APY, in Ray units|
+|_borrowBalanceIncrease|uint256|amount of debt increased by the new borrow, `0` if it's the first borrow, in Wei|
+|_timestamp            |uint256|timestamp of the transaction, in Unix time|
+
+### FlashLoan
+
+|`return` name         |Type   |Description                                             |
+|----------------------|-------|--------------------------------------------------------|
+|_target               |address|address of the smart contract receiving the flashLoan, `flashLoanReceiver`|
+|_reserve              |address|address of the underlying asset|
+|_amount               |uint256|amount borrowed, in Wei|
+|_totalFee             |uint256|FlashLoans fee paid by the borrower, currently set at 9 bps. In Wei|
+|_protocolFee          |uint256|fee for the protocol, currently set at 30% of the `_totalFee` In Wei|
+|_timestamp            |uint256|timestamp of the transaction, in Unix time|
+
+### OriginationFeeLiquidated
+
+|`return` name              |Type   |Description                                             |
+|---------------------------|-------|--------------------------------------------------------|
+|_collateral                |address|address of the contract of collateral asset being liquidated|
+|_reserve                   |address|address of the underlying asset|
+|_user                      |address|address of the `user` being liquidated|
+|_feeLiquidated             |uint256|amount of the fee liquidated denominated in **borrowed currency**, in Wei|
+|_liquidatedCollateralForFee|uint256|amount of collateral liquidated to pay for the fee + liquidation bonus, in Wei|
+|_timestamp                 |uint256|timestamp of the transaction, in Unix time|
+
+### LiquidationCall
+
+|`return` name              |Type   |Description                                             |
+|---------------------------|-------|--------------------------------------------------------|
+|_collateral                |address|address of the contract of collateral asset being liquidated|
+|_reserve                   |address|address of the underlying asset|
+|_user                      |address|address of the `user` being liquidated|
+|_purchaseAmount            |uint256|amount of the liquidation, in Wei|
+|_liquidatedCollateralAmount|uint256|amount of collateral being liquidated|
+|_accruedBorrowInterest     |uint256|amount of debt increased since the last update by the user, in Wei|
+|_liquidator                |address|address of the liquidator|
+|_receiveAToken             |bool   |`true` if the liquidator wants to receive mTokens, `false` otherwise|
+|_timestamp                 |uint256|timestamp of the transaction, in Unix time|
