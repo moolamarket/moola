@@ -32,6 +32,6 @@
     "truffle": "^5.1.50"
   },
   "devDependencies": {
-    "@celo/contractkit": "^0.4.17"
+    "@celo/contractkit": "^1.0.1"
   }
 }
