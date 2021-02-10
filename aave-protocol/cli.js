@@ -31,6 +31,10 @@ function printRay(num) {
   return BN(num).dividedBy(ray).toFixed();
 }
 
+function printRayRate(num) {
+  return BN(num).dividedBy(ray).multipliedBy(BN(100)).toFixed(2) + '%';
+}
+
 function printActions() {
   console.info('Available actions:');
   console.info('balanceOf celo|cusd address');
@@ -112,8 +116,8 @@ async function execute(network, action, ...params) {
       Borrowed: print(data.principalBorrowBalance),
       Debt: print(data.currentBorrowBalance),
       RateMode: INTEREST_RATE[data.borrowRateMode],
-      BorrowRate: printRay(data.borrowRate),
-      LiquidityRate: printRay(data.liquidityRate),
+      BorrowRate: printRayRate(data.borrowRate),
+      LiquidityRate: printRayRate(data.liquidityRate),
       OriginationFee: print(data.originationFee),
       BorrowIndex: printRay(data.variableBorrowIndex),
       LastUpdate: (new Date(BN(data.lastUpdateTimestamp).multipliedBy(1000).toNumber())).toLocaleString(),
@@ -146,11 +150,11 @@ async function execute(network, action, ...params) {
       AvailableLiquidity: print(data.availableLiquidity),
       TotalBorrowsStable: print(data.totalBorrowsStable),
       TotalBorrowsVariable: print(data.totalBorrowsVariable),
-      LiquidityRate: printRay(data.liquidityRate),
-      VariableRate: printRay(data.variableBorrowRate),
-      StableRate: printRay(data.stableBorrowRate),
-      AverageStableRate: printRay(data.averageStableBorrowRate),
-      UtilizationRate: printRay(data.utilizationRate),
+      LiquidityRate: printRayRate(data.liquidityRate),
+      VariableRate: printRayRate(data.variableBorrowRate),
+      StableRate: printRayRate(data.stableBorrowRate),
+      AverageStableRate: printRayRate(data.averageStableBorrowRate),
+      UtilizationRate: printRayRate(data.utilizationRate),// Ut
       LiquidityIndex: printRay(data.liquidityIndex),
       VariableBorrowIndex: printRay(data.variableBorrowIndex),
       MToken: data.aTokenAddress,
