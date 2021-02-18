@@ -2,6 +2,7 @@ const { newKit } = require('@celo/contractkit');
 const LendingPoolAddressesProvider = require('./abi/LendingPoolAddressesProvider.json');
 const LendingPool = require('./abi/LendingPool.json');
 const LendingPoolCore = require('./abi/LendingPoolCore.json');
+const LendingPoolDataProvider = require('./abi/LendingPoolDataProvider.json');
 const AToken = require('./abi/AToken.json');
 const BigNumber = require('bignumber.js');
 const Promise = require('bluebird');
@@ -64,7 +65,7 @@ async function execute(network, action, ...params) {
     return;
   }
   let kit;
-  let addressProvider
+  let addressProvider;
   let privateKeyRequired = true;
   switch (network) {
     case 'test':
@@ -93,6 +94,7 @@ async function execute(network, action, ...params) {
   const cUSD = await kit.contracts.getStableToken();
   const lendingPool = new eth.Contract(LendingPool, await addressProvider.methods.getLendingPool().call());
   const lendingPoolCore = new eth.Contract(LendingPoolCore, await addressProvider.methods.getLendingPoolCore().call());
+  const lendingPoolDataProvider = new eth.Contract(LendingPoolDataProvider, await addressProvider.methods.getLendingPoolDataProvider().call());
   const tokens = {
     celo: CELO,
     cusd: cUSD,
@@ -128,7 +130,13 @@ async function execute(network, action, ...params) {
   }
   if (action == 'getuseraccountdata') {
     const user = params[0];
-    const data = await lendingPool.methods.getUserAccountData(user).call();
+    let data;
+    try {
+      data = await lendingPool.methods.getUserAccountData(user).call();
+    } catch (err) {
+      data = await lendingPoolDataProvider.methods.calculateUserGlobalData(user).call();
+      data.availableBorrowsETH = 0;
+    }
     const parsedData = {
       TotalLiquidity: print(data.totalLiquidityETH),
       TotalCollateral: print(data.totalCollateralETH),
