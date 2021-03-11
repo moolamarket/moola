@@ -138,13 +138,13 @@ async function execute(network, action, ...params) {
       data.availableBorrowsETH = 0;
     }
     const parsedData = {
-      TotalLiquidity: print(data.totalLiquidityETH),
-      TotalCollateral: print(data.totalCollateralETH),
-      TotalBorrow: print(data.totalBorrowsETH),
+      TotalLiquidity: print(data.totalLiquidityETH || data.totalLiquidityBalanceETH),
+      TotalCollateral: print(data.totalCollateralETH || data.totalCollateralBalanceETH),
+      TotalBorrow: print(data.totalBorrowsETH || data.totalBorrowBalanceETH),
       TotalFees: print(data.totalFeesETH),
       AvailableBorrow: print(data.availableBorrowsETH),
       LiquidationThreshold: `${data.currentLiquidationThreshold}%`,
-      LoanToValue: `${data.ltv}%`,
+      LoanToValue: `${data.ltv || data.currentLtv}%`,
       healthFactor: data.healthFactor.length > 30 ? 'SAFE' : print(data.healthFactor),
     };
     console.table(parsedData);
