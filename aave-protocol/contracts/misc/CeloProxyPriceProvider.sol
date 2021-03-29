@@ -8,6 +8,7 @@ import "../libraries/EthAddressLib.sol";
 
 interface ISortedOracles {
     function medianRate(address) external view returns (uint256, uint256);
+    function medianTimestamp(address) external view returns (uint256);
 }
 
 interface IRegistry {
@@ -76,11 +77,12 @@ contract CeloProxyPriceProvider is IPriceOracleGetter, Ownable, UsingRegistry {
         }
         uint256 _price;
         uint256 _divisor;
-        (_price, _divisor) = getSortedOracles().medianRate(_asset);
-        if (_price > 0) {
-            return _divisor.mul(1 ether).div(_price);
-        }
-        return IPriceOracleGetter(fallbackOracle).getAssetPrice(_asset);
+        ISortedOracles _oracles = getSortedOracles();
+        (_price, _divisor) = _oracles.medianRate(_asset);
+        require(_price > 0, "Reported price is 0");
+        uint _reportTime = _oracles.medianTimestamp(_asset);
+        require(block.timestamp.sub(_reportTime) < 10 minutes, "Reported price is older than 10 minutes");
+        return _divisor.mul(1 ether).div(_price);
     }
 
     /// @notice Gets a list of prices from a list of assets addresses
