@@ -2,7 +2,7 @@
 
 ## Cli Usage
 
-Private key might not be needed to send transactions if prive node URL provided.
+Private key might not be needed to send transactions if private node URL provided.
 
 ```
 cd aave-protocol && npm install
