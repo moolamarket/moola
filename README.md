@@ -10,14 +10,14 @@ node cli
 
 Usage: test|main|URL action params
 Available actions:
-balanceOf celo|cusd address
-getUserReserveData celo|cusd address
-getReserveData celo|cusd
+balanceOf celo|cusd|ceur address
+getUserReserveData celo|cusd|ceur address
+getReserveData celo|cusd|ceur
 getUserAccountData address
-deposit celo|cusd address amount [privateKey]
-borrow celo|cusd address amount stable|variable [privateKey]
-repay celo|cusd address amount|all [privateKey]
-redeem celo|cusd address amount|all [privateKey]
+deposit celo|cusd|ceur address amount [privateKey]
+borrow celo|cusd|ceur address amount stable|variable [privateKey]
+repay celo|cusd|ceur address amount|all [privateKey]
+redeem celo|cusd|ceur address amount|all [privateKey]
 ```
 
 ### Example usage

@@ -4,6 +4,9 @@ const LendingPool = require('./abi/LendingPool.json');
 const LendingPoolCore = require('./abi/LendingPoolCore.json');
 const LendingPoolDataProvider = require('./abi/LendingPoolDataProvider.json');
 const AToken = require('./abi/AToken.json');
+const CELOToken = require('./abi/AToken.json');
+const CUSD = require('./abi/AToken.json');
+const CEUR = require('./abi/AToken.json');
 const BigNumber = require('bignumber.js');
 const Promise = require('bluebird');
 
@@ -38,14 +41,14 @@ function printRayRate(num) {
 
 function printActions() {
   console.info('Available actions:');
-  console.info('balanceOf celo|cusd address');
-  console.info('getUserReserveData celo|cusd address');
-  console.info('getReserveData celo|cusd');
-  console.info('getUserAccountData celo|cusd address');
-  console.info('deposit celo|cusd address amount [privateKey]');
-  console.info('borrow celo|cusd address amount stable|variable [privateKey]');
-  console.info('repay celo|cusd address amount|all [privateKey]');
-  console.info('redeem celo|cusd address amount|all [privateKey]');
+  console.info('balanceOf celo|cusd|ceur address');
+  console.info('getUserReserveData celo|cusd|ceur address');
+  console.info('getReserveData celo|cusd|ceur');
+  console.info('getUserAccountData address');
+  console.info('deposit celo|cusd|ceur address amount [privateKey]');
+  console.info('borrow celo|cusd|ceur address amount stable|variable [privateKey]');
+  console.info('repay celo|cusd|ceur address amount|all [privateKey]');
+  console.info('redeem celo|cusd|ceur address amount|all [privateKey]');
 }
 
 const retry = async (fun, tries = 5) => {
@@ -66,15 +69,24 @@ async function execute(network, action, ...params) {
   }
   let kit;
   let addressProvider;
+  let CELO;
+  let cUSD;
+  let cEUR;
   let privateKeyRequired = true;
   switch (network) {
     case 'test':
       kit = newKit('https://alfajores-forno.celo-testnet.org');
       addressProvider = new kit.web3.eth.Contract(LendingPoolAddressesProvider, '0x6EAE47ccEFF3c3Ac94971704ccd25C7820121483');
+      cEUR = new kit.web3.eth.Contract(CEUR, '0x10c892a6ec43a53e45d0b916b4b7d383b1b78c0f');
+      cUSD = new kit.web3.eth.Contract(CUSD, '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1');
+      CELO = new kit.web3.eth.Contract(CELOToken, '0xF194afDf50B03e69Bd7D057c1Aa9e10c9954E4C9');
       break;
     case 'main':
       kit = newKit('https://forno.celo.org');
       addressProvider = new kit.web3.eth.Contract(LendingPoolAddressesProvider, '0x7AAaD5a5fa74Aec83b74C2a098FBC86E17Ce4aEA');
+      cEUR = new kit.web3.eth.Contract(CEUR, '0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73');
+      cUSD = new kit.web3.eth.Contract(CUSD, '0x765DE816845861e75A25fCA122bb6898B8B1282a');
+      CELO = new kit.web3.eth.Contract(CELOToken, '0x471EcE3750Da237f93B8E339c536989b8978a438');
       break;
     default:
       try {
@@ -85,28 +97,33 @@ async function execute(network, action, ...params) {
         return;
       }
       addressProvider = new kit.web3.eth.Contract(LendingPoolAddressesProvider, '0x7AAaD5a5fa74Aec83b74C2a098FBC86E17Ce4aEA');
+      cEUR = new kit.web3.eth.Contract(CEUR, '0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73');
+      cUSD = new kit.web3.eth.Contract(CUSD, '0x765DE816845861e75A25fCA122bb6898B8B1282a');
+      CELO = new kit.web3.eth.Contract(CELOToken, '0x471EcE3750Da237f93B8E339c536989b8978a438');
       privateKeyRequired = false;
   }
   const web3 = kit.web3;
   const eth = web3.eth;
 
-  const CELO = await kit.contracts.getGoldToken();
-  const cUSD = await kit.contracts.getStableToken();
   const lendingPool = new eth.Contract(LendingPool, await addressProvider.methods.getLendingPool().call());
   const lendingPoolCore = new eth.Contract(LendingPoolCore, await addressProvider.methods.getLendingPoolCore().call());
   const lendingPoolDataProvider = new eth.Contract(LendingPoolDataProvider, await addressProvider.methods.getLendingPoolDataProvider().call());
   const tokens = {
     celo: CELO,
     cusd: cUSD,
+    ceur: cEUR
   };
+
+
   const reserves = {
     celo: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-    cusd: cUSD.address,
+    cusd: cUSD.options.address,
+    ceur: cEUR.options.address,
   };
   if (action === 'balanceof') {
     const token = tokens[params[0]];
     const user = params[1];
-    console.info((await token.balanceOf(user)).div(ether).toFixed());
+    console.info(BN(((await token.methods.balanceOf(user).call()).toString())).div(ether).toFixed());
     return;
   }
   if (action == 'getuserreservedata') {
@@ -188,11 +205,11 @@ async function execute(network, action, ...params) {
       }
       console.log('Deposit', (await lendingPool.methods.deposit(reserve, amount, 0).send({from: user, gas: 2000000, value: amount})).transactionHash);
     } else {
-      console.log('Approve', (await (await token.approve(lendingPoolCore.options.address, amount).send({from: user, gas: 2000000})).receiptFuture.promise).transactionHash);
+      console.log('Approve', (await token.methods.approve(lendingPoolCore.options.address, amount).send({from: user, gas: 2000000})).transactionHash);
       try {
         await retry(() => lendingPool.methods.deposit(reserve, amount, 0).estimateGas({from: user, gas: 2000000}));
       } catch (err) {
-        console.log('Revoke approve', (await (await token.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).receiptFuture.promise).transactionHash);
+        console.log('Revoke approve', (await token.methods.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).transactionHash);
         console.log('Cannot deposit', err.message);
         return;
       }
@@ -234,19 +251,19 @@ async function execute(network, action, ...params) {
       kit.addAccount(params[3]);
     }
     if (params[0] !== 'celo') {
-      console.log('Approve', (await (await token.approve(lendingPoolCore.options.address, amount).send({from: user, gas: 2000000})).receiptFuture.promise).transactionHash);
+      console.log('Approve', (await token.methods.approve(lendingPoolCore.options.address, amount).send({from: user, gas: 2000000})).transactionHash);
     }
     try {
       await retry(() => lendingPool.methods.repay(reserve, amount, user).estimateGas({from: user, gas: 2000000, value}));
     } catch (err) {
-      console.log('Revoke approve', (await (await token.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).receiptFuture.promise).transactionHash);
+      console.log('Revoke approve', (await token.methods.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).transactionHash);
       console.log('Cannot repay', err.message);// const pk = require('./pk2.json');
 
       return;
     }
     console.log('Repay', (await lendingPool.methods.repay(reserve, amount, user).send({from: user, gas: 2000000, value})).transactionHash);
     if (params[0] !== 'celo' && amount === maxUint256) {
-      console.log('Revoke approve', (await (await token.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).receiptFuture.promise).transactionHash);
+      console.log('Revoke approve', (await token.methods.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).transactionHash);
     }
     return;
   }
