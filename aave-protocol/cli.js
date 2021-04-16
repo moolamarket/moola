@@ -4,6 +4,7 @@ const LendingPool = require('./abi/LendingPool.json');
 const LendingPoolCore = require('./abi/LendingPoolCore.json');
 const LendingPoolDataProvider = require('./abi/LendingPoolDataProvider.json');
 const AToken = require('./abi/AToken.json');
+const CEUR = require('./abi/AToken.json');
 const BigNumber = require('bignumber.js');
 const Promise = require('bluebird');
 
@@ -38,14 +39,14 @@ function printRayRate(num) {
 
 function printActions() {
   console.info('Available actions:');
-  console.info('balanceOf celo|cusd address');
-  console.info('getUserReserveData celo|cusd address');
-  console.info('getReserveData celo|cusd');
-  console.info('getUserAccountData celo|cusd address');
-  console.info('deposit celo|cusd address amount [privateKey]');
-  console.info('borrow celo|cusd address amount stable|variable [privateKey]');
-  console.info('repay celo|cusd address amount|all [privateKey]');
-  console.info('redeem celo|cusd address amount|all [privateKey]');
+  console.info('balanceOf celo|cusd|ceur address');
+  console.info('getUserReserveData celo|cusd|ceur address');
+  console.info('getReserveData celo|cusd|ceur');
+  console.info('getUserAccountData celo|cusd|ceur address');
+  console.info('deposit celo|cusd|ceur address amount [privateKey]');
+  console.info('borrow celo|cusd|ceur address amount stable|variable [privateKey]');
+  console.info('repay celo|cusd|ceur address amount|all [privateKey]');
+  console.info('redeem celo|cusd|ceur address amount|all [privateKey]');
 }
 
 const retry = async (fun, tries = 5) => {
@@ -66,15 +67,18 @@ async function execute(network, action, ...params) {
   }
   let kit;
   let addressProvider;
+  let cEUR;
   let privateKeyRequired = true;
   switch (network) {
     case 'test':
       kit = newKit('https://alfajores-forno.celo-testnet.org');
       addressProvider = new kit.web3.eth.Contract(LendingPoolAddressesProvider, '0x6EAE47ccEFF3c3Ac94971704ccd25C7820121483');
+      cEUR = new kit.web3.eth.Contract(CEUR, '0x0A09C78F39C080087B5a9dF8E267A8F129dA8505');
       break;
     case 'main':
       kit = newKit('https://forno.celo.org');
       addressProvider = new kit.web3.eth.Contract(LendingPoolAddressesProvider, '0x7AAaD5a5fa74Aec83b74C2a098FBC86E17Ce4aEA');
+      cEUR = new kit.web3.eth.Contract(CEUR, '0x391c7F35cD1917E83a6c506E590381F2c79E09b9');
       break;
     default:
       try {
@@ -85,6 +89,7 @@ async function execute(network, action, ...params) {
         return;
       }
       addressProvider = new kit.web3.eth.Contract(LendingPoolAddressesProvider, '0x7AAaD5a5fa74Aec83b74C2a098FBC86E17Ce4aEA');
+      cEUR = new kit.web3.eth.Contract(CEUR, '0x391c7F35cD1917E83a6c506E590381F2c79E09b9');
       privateKeyRequired = false;
   }
   const web3 = kit.web3;
@@ -98,10 +103,12 @@ async function execute(network, action, ...params) {
   const tokens = {
     celo: CELO,
     cusd: cUSD,
+    ceur: cEUR
   };
   const reserves = {
     celo: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
     cusd: cUSD.address,
+    ceur: cEUR.address,
   };
   if (action === 'balanceof') {
     const token = tokens[params[0]];
