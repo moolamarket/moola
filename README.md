@@ -129,6 +129,15 @@ Bob redeems cUSD.
 4.714000000067471391 Bob cUSD balance.
 0.199940560434114098 Bob CELO balance.
 Test done.
+
+Updated PriceOracle to: 0x568547688121AA69bDEB8aEB662C321c5D7B98D0, tx: 0x8dd54490d0843071123fd74f487da380a5b616db302711f7dd5c2a742f59d9d3
+Updated LendingPool to 0x3: 0x3C95bE77b6Ea2e8D6da19c70305b559d1a9e42ef, tx: 0x580f9ab85f06bd78de0cf235ed3b5414b0374fbadc2c0f6a9a80f404dc30b396
+Initialize LendingPool 0x3 prototype tx: 0x50d74a155f05a19411ae98b822ba2a16dd3a21a81a8e05a7d4cb4dd357d9dcb3
+
+0xa8d0E6799FF3Fd19c6459bf02689aE09c4d78Ba7 MToken.
+0xa8d0E6799FF3Fd19c6459bf02689aE09c4d78Ba7 mCEUR MToken deployed.
+cEUR as collateral enabled.
+cEUR borrowing enabled.
 ```
 
 ## Alfajores deployment and testing log.
@@ -231,6 +240,11 @@ Test done.
 Updated PriceOracle to: 0x88A4a87eF224D8b1F463708D0CD62b17De593DAd, tx: 0x5a8fed525f47894d5bee963b8be0f4a1975b74d2300d1ca1fd1e0b5cef3a63ed
 Updated LendingPool to 0x3: 0xE15FEBDc920022347231e6Ae176836B4946a8e07, tx: 0xa0a5da930d057a3cde4ad4fc49564259df9abd06f1d2052e7b3a02fd1a45266e
 Initialize LendingPool 0x3 prototype tx: 0xc9d5033c3139d30d6f1b2fa2211bc0ff54b1b4b61985121c2d7421d091b1736e
+
+0x32974C7335e649932b5766c5aE15595aFC269160 MToken.
+0x32974C7335e649932b5766c5aE15595aFC269160 mCEUR MToken deployed.
+cEUR as collateral enabled.
+cEUR borrowing enabled.
 ```
 
 # Lending Pool
