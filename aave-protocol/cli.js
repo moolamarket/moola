@@ -205,11 +205,11 @@ async function execute(network, action, ...params) {
       }
       console.log('Deposit', (await lendingPool.methods.deposit(reserve, amount, 0).send({from: user, gas: 2000000, value: amount})).transactionHash);
     } else {
-      console.log('Approve', (await (await token.methods.approve(lendingPoolCore.options.address, amount).send({from: user, gas: 2000000})).receiptFuture.promise).transactionHash);
+      console.log('Approve', (await token.methods.approve(lendingPoolCore.options.address, amount).send({from: user, gas: 2000000})).transactionHash);
       try {
         await retry(() => lendingPool.methods.deposit(reserve, amount, 0).estimateGas({from: user, gas: 2000000}));
       } catch (err) {
-        console.log('Revoke approve', (await (await token.methods.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).receiptFuture.promise).transactionHash);
+        console.log('Revoke approve', (await token.methods.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).transactionHash);
         console.log('Cannot deposit', err.message);
         return;
       }
@@ -251,19 +251,19 @@ async function execute(network, action, ...params) {
       kit.addAccount(params[3]);
     }
     if (params[0] !== 'celo') {
-      console.log('Approve', (await (await token.methods.approve(lendingPoolCore.options.address, amount).send({from: user, gas: 2000000})).receiptFuture.promise).transactionHash);
+      console.log('Approve', (await token.methods.approve(lendingPoolCore.options.address, amount).send({from: user, gas: 2000000})).transactionHash);
     }
     try {
       await retry(() => lendingPool.methods.repay(reserve, amount, user).estimateGas({from: user, gas: 2000000, value}));
     } catch (err) {
-      console.log('Revoke approve', (await (await token.methods.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).receiptFuture.promise).transactionHash);
+      console.log('Revoke approve', (await token.methods.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).transactionHash);
       console.log('Cannot repay', err.message);// const pk = require('./pk2.json');
 
       return;
     }
     console.log('Repay', (await lendingPool.methods.repay(reserve, amount, user).send({from: user, gas: 2000000, value})).transactionHash);
     if (params[0] !== 'celo' && amount === maxUint256) {
-      console.log('Revoke approve', (await (await token.methods.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).receiptFuture.promise).transactionHash);
+      console.log('Revoke approve', (await token.methods.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).transactionHash);
     }
     return;
   }
