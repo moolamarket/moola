@@ -44,7 +44,7 @@ function printActions() {
   console.info('balanceOf celo|cusd|ceur address');
   console.info('getUserReserveData celo|cusd|ceur address');
   console.info('getReserveData celo|cusd|ceur');
-  console.info('getUserAccountData celo|cusd|ceur address');
+  console.info('getUserAccountData address');
   console.info('deposit celo|cusd|ceur address amount [privateKey]');
   console.info('borrow celo|cusd|ceur address amount stable|variable [privateKey]');
   console.info('repay celo|cusd|ceur address amount|all [privateKey]');
