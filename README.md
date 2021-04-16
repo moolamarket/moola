@@ -13,7 +13,7 @@ Available actions:
 balanceOf celo|cusd|ceur address
 getUserReserveData celo|cusd|ceur address
 getReserveData celo|cusd|ceur
-getUserAccountData celo|cusd|ceur address
+getUserAccountData address
 deposit celo|cusd|ceur address amount [privateKey]
 borrow celo|cusd|ceur address amount stable|variable [privateKey]
 repay celo|cusd|ceur address amount|all [privateKey]
