@@ -138,6 +138,15 @@ Initialize LendingPool 0x3 prototype tx: 0x50d74a155f05a19411ae98b822ba2a16dd3a2
 0xa8d0E6799FF3Fd19c6459bf02689aE09c4d78Ba7 mCEUR MToken deployed.
 cEUR as collateral enabled.
 cEUR borrowing enabled.
+
+Ownership transfer start.
+0xB5d3a65803E87756c997679453DD9d92556314e2 actual owner address.
+0x313bc86D3D6e86ba164B2B451cB0D9CfA7943e5c next owner address.
+Set Lending Pool Manager: 0x1fddb899e8a10bf4bce5779fb1c388add483596cc61206b4952298e139c6c564
+CeloProxyPriceProvider transfer ownership: 0x81bef8e8f26d8b8df705132cf85c2197321c5de82118c575d733d3eba836687d
+LendingRateOracle transfer ownership: 0xc889a7a1765a20c521b466b234fa91ec41caa9c5049def50350dc392c16dcc89
+LendingPoolAddressesProvider transfer ownership: 0x0474e427eb47f5fff8acffae94495c311d2c709b80ea005e8c5c8edf6ebc0d56
+Ownership transfer is done.
 ```
 
 ## Alfajores deployment and testing log.
@@ -372,6 +381,15 @@ When the health factor of a position is below 1, liquidators repay part or all o
 
 ### flashLoan()
 **`function flashLoan(address payable _receiver, address _reserve, uint _amount, bytes memory _params)`**
+
+Call it in the LendingPool contract address at:
+
+```
+Mainnet:   0xc1548F5AA1D76CDcAB7385FA6B5cEA70f941e535
+Alfajores: 0x0886f74eEEc443fBb6907fB5528B57C28E813129
+```
+
+Consider using FlashLoanReceiverBase for integration purposes.
 
 Allows the calling contract to borrow (without collateral) from the `_reserve` pool,  a certain `_amount` of liquidity, that must be returned before the end of the transaction.
 
