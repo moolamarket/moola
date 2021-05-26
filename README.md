@@ -395,7 +395,7 @@ Allows the calling contract to borrow (without collateral) from the `_reserve` p
 
 Since the Flash Loan occurs within 1 transaction, it is only possible to call this function successfully on the smart contract level (i.e. Solidity or Vyper).
 
-Flash Loans incur a *fee* of 0.09% of the loan amount.
+Flash Loans incur a *fee* of 0.35% of the loan amount.
 
 |Parameter Name     |Type   |Description                                             |
 |-------------------|-------|--------------------------------------------------------|
