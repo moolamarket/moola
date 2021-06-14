@@ -16,6 +16,9 @@ module.exports = {
           runs: 200,
         },
         evmVersion: 'istanbul',
+        metadata: {
+          useLiteralContent: true,
+        },
       },
     },
   },

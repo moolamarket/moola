@@ -147,6 +147,26 @@ CeloProxyPriceProvider transfer ownership: 0x81bef8e8f26d8b8df705132cf85c2197321
 LendingRateOracle transfer ownership: 0xc889a7a1765a20c521b466b234fa91ec41caa9c5049def50350dc392c16dcc89
 LendingPoolAddressesProvider transfer ownership: 0x0474e427eb47f5fff8acffae94495c311d2c709b80ea005e8c5c8edf6ebc0d56
 Ownership transfer is done.
+
+Simple Token Distribtutor Deployment start.
+[
+  {
+    "receiver": "0x313bc86D3D6e86ba164B2B451cB0D9CfA7943e5c",
+    "percent": 50
+  },
+  {
+    "receiver": "0x313bc86D3D6e86ba164B2B451cB0D9CfA7943e5c",
+    "percent": 50
+  }
+]
+0xB5d3a65803E87756c997679453DD9d92556314e2 deployer address.
+0x313bc86D3D6e86ba164B2B451cB0D9CfA7943e5c current TokenDistributor address.
+0xA9528417d7281429081713AA20D1deBbc9A7a7af SimpleTokenDistributor deployed.
+Now do: addressProvider.setTokenDistributor('0xA9528417d7281429081713AA20D1deBbc9A7a7af')
+To: 0x7AAaD5a5fa74Aec83b74C2a098FBC86E17Ce4aEA
+Data: 0x38280e6b000000000000000000000000a9528417d7281429081713aa20d1debbc9a7a7af
+Transaction is waiting approval on the multisig.
+Deploying SimpleTokenDistributor is done.
 ```
 
 ## Alfajores deployment and testing log.
@@ -254,6 +274,24 @@ Initialize LendingPool 0x3 prototype tx: 0xc9d5033c3139d30d6f1b2fa2211bc0ff54b1b
 0x32974C7335e649932b5766c5aE15595aFC269160 mCEUR MToken deployed.
 cEUR as collateral enabled.
 cEUR borrowing enabled.
+
+Simple Token Distribtutor Deployment start.
+[
+  {
+    "receiver": "0xd7ec16ff15cA494e7B5901CcDc62e86775401A89",
+    "percent": 50
+  },
+  {
+    "receiver": "0xd7ec16ff15cA494e7B5901CcDc62e86775401A89",
+    "percent": 50
+  }
+]
+0xd7ec16ff15cA494e7B5901CcDc62e86775401A89 deployer address.
+0x91DcB7c3D167b6AEA036F4Dcdab2913F6e3c21fA current TokenDistributor address.
+0x0f7f479E6D1bB55870B8040F376A8F400028dfd3 SimpleTokenDistributor deployed.
+addressProvider.setTokenDistributor('0x0f7f479E6D1bB55870B8040F376A8F400028dfd3')
+Transaction: 0x78614a76ba4f336e07a18bc0a0d9d4c29aa111d8fdd4d43e7338dddf2683dcd2
+Deploying SimpleTokenDistributor is done.
 ```
 
 # Lending Pool
