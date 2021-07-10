@@ -1,0 +1,28 @@
+{
+  "name": "MoolaStakingRewards",
+  "version": "0.0.1",
+  "description": "",
+  "scripts": {
+    "test": "hardhat test",
+    "compile": "hardhat compile"
+  },
+  "keywords": [],
+  "author": "Ambisafe inc",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "2.0.2",
+    "@nomiclabs/hardhat-waffle": "2.0.1",
+    "@openzeppelin/contracts": "^4.1.0",
+    "@openzeppelin/test-helpers": "0.5.11",
+    "@uniswap/v2-core": "^1.0.1",
+    "@uniswap/v2-periphery": "1.1.0-beta.0",
+    "assert": "2.0.0",
+    "chai": "4.3.4",
+    "dotenv": "8.2.0",
+    "ethereum-waffle": "3.3.0",
+    "ethers": "5.1.0",
+    "hardhat": "^2.3.3",
+    "hardhat-gas-reporter": "^1.0.4",
+    "mocha": "9.0.0"
+  }
+}
