@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "test": "hardhat test",
-    "compile": "hardhat compile"
+    "compile": "hardhat compile",
+    "hardhat": "hardhat"
   },
   "keywords": [],
   "author": "Ambisafe inc",
