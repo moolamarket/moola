@@ -1,6 +1,7 @@
 require('@nomiclabs/hardhat-waffle');
 require('dotenv').config();
 require('hardhat-gas-reporter');
+const {types} = require('hardhat/config');
 
 const {PRIVATE_KEY} = process.env;
 
@@ -14,8 +15,15 @@ task('deploy', 'Deploy MoolaStakingRewards')
   .addParam('rewardsDistribution', 'Address that will initiate every rewards period, could be the same as owner')
   .addParam('rewardsToken', 'Token to be rewarded')
   .addParam('externalStakingRewards', 'StakingRewards contract for restaking')
+  .addParam('externalRewardsTokens', 'Tokens to be additionally rewarded')
   .addParam('stakingToken', 'Token used for staking, will be validated to be the same as in the ExternalStakingRewards')
-  .setAction(async ({owner, rewardsDistribution, rewardsToken, externalStakingRewards, stakingToken}) => {
+  .setAction(async ({owner, rewardsDistribution, rewardsToken, externalStakingRewards, externalRewardsTokens, stakingToken}) => {
+    const externalTokens = externalRewardsTokens.split(',');
+    console.log(externalTokens);
+    assert(externalTokens.length > 0, 'Empty external rewards tokens.');
+    for (const tokenAddress of externalTokens) {
+      assert(ethers.utils.isAddress(tokenAddress), `External rewards token address '${tokenAddress}' is invalid.`);
+    }
     assert(ethers.utils.isAddress(owner), `Owner address '${owner}' is invalid.`);
     assert(ethers.utils.isAddress(rewardsDistribution),
       `RewardsDistribution address '${rewardsDistribution}' is invalid.`);
@@ -40,7 +48,7 @@ task('deploy', 'Deploy MoolaStakingRewards')
 
     const MoolaStakingRewards = await ethers.getContractFactory('MoolaStakingRewards');
     const moolaStakingRewards = await MoolaStakingRewards.deploy(
-      owner, rewardsDistribution, rewardsToken, externalStakingRewards);
+      owner, rewardsDistribution, rewardsToken, externalStakingRewards, externalTokens);
     console.log('Waiting for deploy.');
     await moolaStakingRewards.deployed();
 

@@ -20,8 +20,8 @@ contract MoolaStakingRewards is IMoolaStakingRewards, RewardsDistributionRecipie
     /* ========== STATE VARIABLES ========== */
 
     IERC20 public immutable rewardsToken;
-    IERC20 public immutable externalRewardsToken;
     IERC20 public immutable stakingToken;
+    IERC20[] public externalRewardsTokens;
     uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
     uint256 public rewardsDuration = 7 days;
@@ -30,10 +30,10 @@ contract MoolaStakingRewards is IMoolaStakingRewards, RewardsDistributionRecipie
 
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
-    mapping(address => uint256) public externalRewards;
+    mapping(address => mapping(IERC20 => uint256)) public externalRewards;
 
-    uint256 private externalRewardPerTokenStoredWad;
-    mapping(address => uint256) private externalUserRewardPerTokenPaidWad;
+    mapping(IERC20 => uint256) private externalRewardPerTokenStoredWad;
+    mapping(address => mapping(IERC20 => uint256)) private externalUserRewardPerTokenPaidWad;
 
     uint256 private _totalSupply;
     mapping(address => uint256) private _balances;
@@ -44,13 +44,15 @@ contract MoolaStakingRewards is IMoolaStakingRewards, RewardsDistributionRecipie
     constructor(
         address _owner,
         address _rewardsDistribution,
-        address _rewardsToken,
-        IStakingRewards _externalStakingRewards
+        IERC20 _rewardsToken,
+        IStakingRewards _externalStakingRewards,
+        IERC20[] memory _externalRewardsTokens
     ) Owned(_owner) {
-        rewardsToken = IERC20(_rewardsToken);
+        require(_externalRewardsTokens.length > 0, "Empty externalRewardsTokens");
+        rewardsToken = _rewardsToken;
         rewardsDistribution = _rewardsDistribution;
         externalStakingRewards = _externalStakingRewards;
-        externalRewardsToken = _externalStakingRewards.rewardsToken();
+        externalRewardsTokens = _externalRewardsTokens;
         stakingToken = _externalStakingRewards.stakingToken();
     }
 
@@ -82,22 +84,38 @@ contract MoolaStakingRewards is IMoolaStakingRewards, RewardsDistributionRecipie
         return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(rewards[account]);
     }
 
-    function earnedExternal(address account) public override returns (uint256) {
-        uint256 externalOldTotalRewards = externalRewardsToken.balanceOf(address(this));
-        externalStakingRewards.getReward();
-        uint256 externalTotalRewards = externalRewardsToken.balanceOf(address(this));
+    function earnedExternal(address account) public override returns (uint256[] memory result) {
+        IERC20[] memory externalTokens = externalRewardsTokens;
+        uint256[] memory externalOldTotalRewards = new uint256[](externalTokens.length);
+        result = new uint256[](externalTokens.length);
 
-        uint256 newExternalRewardsAmount = externalTotalRewards.sub(externalOldTotalRewards);
-        
-        if (_totalSupply > 0) {
-            externalRewardPerTokenStoredWad = externalRewardPerTokenStoredWad.add(newExternalRewardsAmount.mul(1e18).div(_totalSupply));
+        for (uint256 i = 0; i < externalTokens.length; i++) {
+            externalOldTotalRewards[i] = externalTokens[i].balanceOf(address(this));
         }
 
-        uint256 returnValue = _balances[account].mul(externalRewardPerTokenStoredWad.sub(externalUserRewardPerTokenPaidWad[account])).div(1e18).add(externalRewards[account]);
+        externalStakingRewards.getReward();
 
-        externalUserRewardPerTokenPaidWad[account] = externalRewardPerTokenStoredWad;
+        for (uint256 i = 0; i < externalTokens.length; i++) {
+            IERC20 externalToken = externalTokens[i];
+            uint256 externalTotalRewards = externalToken.balanceOf(address(this));
 
-        return returnValue;
+            uint256 newExternalRewardsAmount = externalTotalRewards.sub(externalOldTotalRewards[i]);
+            
+            if (_totalSupply > 0) {
+                externalRewardPerTokenStoredWad[externalToken] =
+                    externalRewardPerTokenStoredWad[externalToken].add(newExternalRewardsAmount.mul(1e18).div(_totalSupply));
+            }
+
+            result[i] =
+                _balances[account]
+                .mul(externalRewardPerTokenStoredWad[externalToken].sub(externalUserRewardPerTokenPaidWad[account][externalToken]))
+                .div(1e18).add(externalRewards[account][externalToken]);
+
+            externalUserRewardPerTokenPaidWad[account][externalToken] = externalRewardPerTokenStoredWad[externalToken];
+            externalRewards[account][externalToken] = result[i];
+        }
+
+        return result;
     }
 
     function getRewardForDuration() external view override returns (uint256) {
@@ -128,7 +146,7 @@ contract MoolaStakingRewards is IMoolaStakingRewards, RewardsDistributionRecipie
 
     function getReward() public override nonReentrant updateReward(msg.sender) {
         uint256 reward = rewards[msg.sender];
-        uint256 externalReward = externalRewards[msg.sender];
+        IERC20[] memory externalTokens = externalRewardsTokens;
 
         if (reward > 0) {
             rewards[msg.sender] = 0;
@@ -136,10 +154,14 @@ contract MoolaStakingRewards is IMoolaStakingRewards, RewardsDistributionRecipie
             emit RewardPaid(msg.sender, reward);
         }
 
-        if (externalReward > 0) {
-            externalRewards[msg.sender] = 0;
-            externalRewardsToken.safeTransfer(msg.sender, externalReward);
-            emit ExternalRewardPaid(msg.sender, reward);
+        for (uint256 i = 0; i < externalTokens.length; i++) {
+            IERC20 externalToken = externalTokens[i];
+            uint256 externalReward = externalRewards[msg.sender][externalToken];
+            if (externalReward > 0) {
+                externalRewards[msg.sender][externalToken] = 0;
+                externalToken.safeTransfer(msg.sender, externalReward);
+                emit ExternalRewardPaid(msg.sender, externalReward);
+            }
         }
     }
 
@@ -200,7 +222,7 @@ contract MoolaStakingRewards is IMoolaStakingRewards, RewardsDistributionRecipie
         if (account != address(0)) {
             rewards[account] = earned(account);
             userRewardPerTokenPaid[account] = rewardPerTokenStored;
-            externalRewards[account] = earnedExternal(account);
+            earnedExternal(account);
         }
         _;
     }

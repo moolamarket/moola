@@ -12,10 +12,12 @@ describe('MoolaStakingRewards', () => {
 
   let stakingRewards;
   let moolaStakingRewards;
+  let moolaStakingRewards2;
 
   let token;
   let token2;
   let token3;
+  let token4;
 
   before('setup', async () => {
     accounts = await ethers.getSigners();
@@ -36,6 +38,9 @@ describe('MoolaStakingRewards', () => {
     token3 = await Token.deploy();
     await token3.deployed();
 
+    token4 = await Token.deploy();
+    await token4.deployed();
+
     const StakingRewards = await ethers.getContractFactory('StakingRewards');
     stakingRewards = await StakingRewards.deploy(
       owner.address,
@@ -53,10 +58,21 @@ describe('MoolaStakingRewards', () => {
       owner.address,
       owner.address,
       token3.address,
-      stakingRewards.address
+      stakingRewards.address,
+      [token2.address]
     );
     await moolaStakingRewards.deployed();
     await token3.mint(moolaStakingRewards.address, 1000000);
+
+    moolaStakingRewards2 = await MoolaStakingRewards.deploy(
+      owner.address,
+      owner.address,
+      token4.address,
+      moolaStakingRewards.address,
+      [token2.address, token3.address]
+    );
+    await moolaStakingRewards2.deployed();
+    await token4.mint(moolaStakingRewards2.address, 1000000);
 
     await ganache.stopMine();
     await ganache.setTime(1e10);
@@ -67,6 +83,9 @@ describe('MoolaStakingRewards', () => {
 
     await moolaStakingRewards.setRewardsDuration(86400);
     await moolaStakingRewards.notifyRewardAmount(86400);
+
+    await moolaStakingRewards2.setRewardsDuration(86400);
+    await moolaStakingRewards2.notifyRewardAmount(86400);
 
     await ganache.mine();
     await ganache.startMine();
@@ -372,6 +391,44 @@ describe('MoolaStakingRewards', () => {
     expect(user2token1ballance).to.equal(100000);
     expect(user2token2ballance).to.be.least(50300).and.to.be.most(50500);
     expect(user2token3ballance).to.be.least(50300).and.to.be.most(50500);
+  });
+
+  it('should reward 2 users with different duration & stake with 3 reward tokens', async () => {
+    await token.connect(user).approve(moolaStakingRewards2.address, 100);
+    await moolaStakingRewards2.connect(user).stake(100);
+
+    await token.connect(userTwo).approve(moolaStakingRewards2.address, 100);
+    await moolaStakingRewards2.connect(userTwo).stake(100);
+
+    await ganache.increaseTime(43200);
+    await ganache.mine();
+
+    await moolaStakingRewards2.connect(user).withdraw(50);
+
+    await ganache.increaseTime(43200);
+    await ganache.mine();
+
+    await moolaStakingRewards2.connect(user).exit();
+    const user1token1ballance = await token.balanceOf(user.address);
+    const user1token2ballance = await token2.balanceOf(user.address);
+    const user1token3ballance = await token3.balanceOf(user.address);
+    const user1token4ballance = await token4.balanceOf(user.address);
+
+    await moolaStakingRewards2.connect(userTwo).exit();
+    const user2token1ballance = await token.balanceOf(userTwo.address);
+    const user2token2ballance = await token2.balanceOf(userTwo.address);
+    const user2token3ballance = await token3.balanceOf(userTwo.address);
+    const user2token4ballance = await token4.balanceOf(userTwo.address);
+
+    expect(user1token1ballance).to.equal(100000);
+    expect(user1token2ballance).to.be.least(35900).and.to.be.most(36100);
+    expect(user1token3ballance).to.be.least(35900).and.to.be.most(36100);
+    expect(user1token4ballance).to.be.least(35900).and.to.be.most(36100);
+
+    expect(user2token1ballance).to.equal(100000);
+    expect(user2token2ballance).to.be.least(50300).and.to.be.most(50500);
+    expect(user2token3ballance).to.be.least(50300).and.to.be.most(50500);
+    expect(user2token4ballance).to.be.least(50300).and.to.be.most(50500);
   });
 
   it('should withdraw half of the stake and then exit', async () => {
