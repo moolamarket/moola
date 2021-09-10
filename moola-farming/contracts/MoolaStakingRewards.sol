@@ -195,6 +195,7 @@ contract MoolaStakingRewards is IMoolaStakingRewards, RewardsDistributionRecipie
 
     // End rewards emission earlier
     function updatePeriodFinish(uint timestamp) external onlyOwner updateReward(address(0)) {
+        require(timestamp > lastUpdateTime, "Invalid new period finish");
         periodFinish = timestamp;
     }
 

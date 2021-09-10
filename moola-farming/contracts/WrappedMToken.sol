@@ -20,7 +20,7 @@ interface IWrappedMToken {
 contract WrappedMToken is ERC20, IWrappedMToken {
     using SafeERC20 for IERC20Metadata;
     IERC20Metadata public immutable MToken;
-    uint public constant MINIMUM_SUPPLY = 1000;
+    uint public constant MINIMUM_SUPPLY = 1000; // Same reasoning as Uniswap V2 minimum liquidity.
 
     constructor (IERC20Metadata _mToken, string memory _name, string memory _symbol)
     ERC20(_name, _symbol) {
