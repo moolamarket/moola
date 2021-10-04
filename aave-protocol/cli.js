@@ -9,6 +9,7 @@ const CUSD = require('./abi/AToken.json');
 const CEUR = require('./abi/AToken.json');
 const BigNumber = require('bignumber.js');
 const Promise = require('bluebird');
+let pk;
 
 const INTEREST_RATE = {
   NONE: 0,
@@ -49,6 +50,8 @@ function printActions() {
   console.info('borrow celo|cusd|ceur address amount stable|variable [privateKey]');
   console.info('repay celo|cusd|ceur address amount|all [privateKey]');
   console.info('redeem celo|cusd|ceur address amount|all [privateKey]');
+  console.info('migrate-step-1 address [privateKey]');
+  console.info('migrate-step-3 address [privateKey]');
 }
 
 const retry = async (fun, tries = 5) => {
@@ -73,6 +76,7 @@ async function execute(network, action, ...params) {
   let cUSD;
   let cEUR;
   let privateKeyRequired = true;
+  let migrator;
   switch (network) {
     case 'test':
       kit = newKit('https://alfajores-forno.celo-testnet.org');
@@ -80,6 +84,7 @@ async function execute(network, action, ...params) {
       cEUR = new kit.web3.eth.Contract(CEUR, '0x10c892a6ec43a53e45d0b916b4b7d383b1b78c0f');
       cUSD = new kit.web3.eth.Contract(CUSD, '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1');
       CELO = new kit.web3.eth.Contract(CELOToken, '0xF194afDf50B03e69Bd7D057c1Aa9e10c9954E4C9');
+      migrator = '0xB37B84788134DdB0DEcc160A792D306dCa97Dae5';
       break;
     case 'main':
       kit = newKit('https://forno.celo.org');
@@ -87,6 +92,7 @@ async function execute(network, action, ...params) {
       cEUR = new kit.web3.eth.Contract(CEUR, '0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73');
       cUSD = new kit.web3.eth.Contract(CUSD, '0x765DE816845861e75A25fCA122bb6898B8B1282a');
       CELO = new kit.web3.eth.Contract(CELOToken, '0x471EcE3750Da237f93B8E339c536989b8978a438');
+      migrator = '0x6ad9426Faa7568F0eFDecAec16b023D5667aE5f3';
       break;
     default:
       try {
@@ -100,6 +106,7 @@ async function execute(network, action, ...params) {
       cEUR = new kit.web3.eth.Contract(CEUR, '0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73');
       cUSD = new kit.web3.eth.Contract(CUSD, '0x765DE816845861e75A25fCA122bb6898B8B1282a');
       CELO = new kit.web3.eth.Contract(CELOToken, '0x471EcE3750Da237f93B8E339c536989b8978a438');
+      migrator = '0x6ad9426Faa7568F0eFDecAec16b023D5667aE5f3';
       privateKeyRequired = false;
   }
   const web3 = kit.web3;
@@ -145,6 +152,17 @@ async function execute(network, action, ...params) {
     console.table(parsedData);
     return;
   }
+  if (action == 'getuseroriginationfee') {
+    const reserve = reserves[params[0]];
+    const user = params[1];
+    console.log(lendingPoolCore.options.address);
+    const data = await lendingPoolCore.methods.getUserOriginationFee('0x1111111111111111111111111111111111111111', user).call();
+    const parsedData = {
+      OriginationFee: print(data),
+    };
+    console.table(parsedData);
+    return;
+  }
   if (action == 'getuseraccountdata') {
     const user = params[0];
     let data;
@@ -179,7 +197,7 @@ async function execute(network, action, ...params) {
       VariableRate: printRayRate(data.variableBorrowRate),
       StableRate: printRayRate(data.stableBorrowRate),
       AverageStableRate: printRayRate(data.averageStableBorrowRate),
-      UtilizationRate: printRayRate(data.utilizationRate),// Ut
+      UtilizationRate: printRayRate(data.utilizationRate),
       LiquidityIndex: printRay(data.liquidityIndex),
       VariableBorrowIndex: printRay(data.variableBorrowIndex),
       MToken: data.aTokenAddress,
@@ -194,7 +212,7 @@ async function execute(network, action, ...params) {
     const user = params[1];
     const amount = web3.utils.toWei(params[2]);
     if (privateKeyRequired) {
-      kit.addAccount(params[3]);
+      kit.addAccount(params.slice(-1)[0]);
     }
     if (params[0] === 'celo') {
       try {
@@ -223,7 +241,7 @@ async function execute(network, action, ...params) {
     const amount = web3.utils.toWei(params[2]);
     const rate = INTEREST_RATE[params[3].toUpperCase()];
     if (privateKeyRequired) {
-      kit.addAccount(params[4]);
+      kit.addAccount(params.slice(-1)[0]);
     }
     try {
       await retry(() => lendingPool.methods.borrow(reserve, amount, rate, 0).estimateGas({from: user, gas: 2000000}));
@@ -248,7 +266,7 @@ async function execute(network, action, ...params) {
       }
     }
     if (privateKeyRequired) {
-      kit.addAccount(params[3]);
+      kit.addAccount(params.slice(-1)[0]);
     }
     if (params[0] !== 'celo') {
       console.log('Approve', (await token.methods.approve(lendingPoolCore.options.address, amount).send({from: user, gas: 2000000})).transactionHash);
@@ -257,7 +275,7 @@ async function execute(network, action, ...params) {
       await retry(() => lendingPool.methods.repay(reserve, amount, user).estimateGas({from: user, gas: 2000000, value}));
     } catch (err) {
       console.log('Revoke approve', (await token.methods.approve(lendingPoolCore.options.address, 0).send({from: user, gas: 2000000})).transactionHash);
-      console.log('Cannot repay', err.message);// const pk = require('./pk2.json');
+      console.log('Cannot repay', err.message);
 
       return;
     }
@@ -273,7 +291,7 @@ async function execute(network, action, ...params) {
     const user = params[1];
     const amount = params[2] === 'all' ? maxUint256 : web3.utils.toWei(params[2]);
     if (privateKeyRequired) {
-      kit.addAccount(params[3]);
+      kit.addAccount(params.slice(-1)[0]);
     }
     try {
       await retry(() => mtoken.methods.redeem(amount).estimateGas({from: user, gas: 2000000}));
@@ -282,6 +300,33 @@ async function execute(network, action, ...params) {
       return;
     }
     console.log('Redeem', (await mtoken.methods.redeem(amount).send({from: user, gas: 2000000})).transactionHash);
+    return;
+  }
+  if (action == 'migrate-step-1') {
+    const mCUSD = new eth.Contract(AToken, (await lendingPool.methods.getReserveData(reserves.cusd).call()).aTokenAddress);
+    const mCEUR = new eth.Contract(AToken, (await lendingPool.methods.getReserveData(reserves.ceur).call()).aTokenAddress);
+    const mCELO = new eth.Contract(AToken, (await lendingPool.methods.getReserveData(reserves.celo).call()).aTokenAddress);
+    const user = params[0];
+    if (privateKeyRequired) {
+      kit.addAccount(params.slice(-1)[0]);
+    }
+    console.log('Approve CUSD for migrator', (await mCUSD.methods.approve(migrator, maxUint256).send({from: user, gas: 200000})).transactionHash);
+    console.log('Approve CEUR for migrator', (await mCEUR.methods.approve(migrator, maxUint256).send({from: user, gas: 200000})).transactionHash);
+    console.log('Approve CELO for migrator', (await mCELO.methods.approve(migrator, maxUint256).send({from: user, gas: 200000})).transactionHash);
+    console.log('Now proceed to moola-v2 migrate-step-2');
+    return;
+  }
+  if (action == 'migrate-step-3') {
+    const mCUSD = new eth.Contract(AToken, (await lendingPool.methods.getReserveData(reserves.cusd).call()).aTokenAddress);
+    const mCEUR = new eth.Contract(AToken, (await lendingPool.methods.getReserveData(reserves.ceur).call()).aTokenAddress);
+    const mCELO = new eth.Contract(AToken, (await lendingPool.methods.getReserveData(reserves.celo).call()).aTokenAddress);
+    const user = params[0];
+    if (privateKeyRequired) {
+      kit.addAccount(params.slice(-1)[0]);
+    }
+    console.log('Revoke approve CUSD from migrator', (await mCUSD.methods.approve(migrator, 0).send({from: user, gas: 200000})).transactionHash);
+    console.log('Revoke approve CEUR from migrator', (await mCEUR.methods.approve(migrator, 0).send({from: user, gas: 200000})).transactionHash);
+    console.log('Revoke approve CELO from migrator', (await mCELO.methods.approve(migrator, 0).send({from: user, gas: 200000})).transactionHash);
     return;
   }
   console.error(`Unknown action: ${action}`);
