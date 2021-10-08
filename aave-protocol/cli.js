@@ -84,7 +84,7 @@ async function execute(network, action, ...params) {
       cEUR = new kit.web3.eth.Contract(CEUR, '0x10c892a6ec43a53e45d0b916b4b7d383b1b78c0f');
       cUSD = new kit.web3.eth.Contract(CUSD, '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1');
       CELO = new kit.web3.eth.Contract(CELOToken, '0xF194afDf50B03e69Bd7D057c1Aa9e10c9954E4C9');
-      migrator = '0xB37B84788134DdB0DEcc160A792D306dCa97Dae5';
+      migrator = '0x78660A4bbe5108c8258c39696209329B3bC214ba';
       break;
     case 'main':
       kit = newKit('https://forno.celo.org');
@@ -92,7 +92,7 @@ async function execute(network, action, ...params) {
       cEUR = new kit.web3.eth.Contract(CEUR, '0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73');
       cUSD = new kit.web3.eth.Contract(CUSD, '0x765DE816845861e75A25fCA122bb6898B8B1282a');
       CELO = new kit.web3.eth.Contract(CELOToken, '0x471EcE3750Da237f93B8E339c536989b8978a438');
-      migrator = '0x6ad9426Faa7568F0eFDecAec16b023D5667aE5f3';
+      migrator = '0xB87ebF9CD90003B66CF77c937eb5628124fA0662';
       break;
     default:
       try {
@@ -106,7 +106,7 @@ async function execute(network, action, ...params) {
       cEUR = new kit.web3.eth.Contract(CEUR, '0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73');
       cUSD = new kit.web3.eth.Contract(CUSD, '0x765DE816845861e75A25fCA122bb6898B8B1282a');
       CELO = new kit.web3.eth.Contract(CELOToken, '0x471EcE3750Da237f93B8E339c536989b8978a438');
-      migrator = '0x6ad9426Faa7568F0eFDecAec16b023D5667aE5f3';
+      migrator = '0xB87ebF9CD90003B66CF77c937eb5628124fA0662';
       privateKeyRequired = false;
   }
   const web3 = kit.web3;
