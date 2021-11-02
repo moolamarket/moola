@@ -33,6 +33,7 @@
     "truffle": "^5.1.50"
   },
   "devDependencies": {
-    "@celo/contractkit": "^1.0.1"
+    "@celo/contractkit": "^1.0.1",
+    "hardhat": "^2.6.7"
   }
 }
