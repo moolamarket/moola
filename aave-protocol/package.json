@@ -34,6 +34,9 @@
   },
   "devDependencies": {
     "@celo/contractkit": "^1.0.1",
-    "hardhat": "^2.6.7"
+    "hardhat": "^2.6.7",
+    "@uniswap/v2-core": "^1.0.1",
+    "@uniswap/v2-periphery": "1.1.0-beta.0"
+
   }
 }

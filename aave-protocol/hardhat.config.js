@@ -10,6 +10,9 @@ module.exports = {
       {
         version: "0.5.5"
       },
+      {
+        version: "0.8.9"
+      }
     ],
   },
 };

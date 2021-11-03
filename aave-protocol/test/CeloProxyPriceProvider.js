@@ -34,20 +34,20 @@ describe("CeloProxyPriceProvider", function () {
         token1 = await Token.deploy();
         await token1.deployed();
 
-        token1.mint(
+        await token1.mint(
             liquidityDistributor.address,
             utils.parseUnits("100000", "ether")
         );
-        token1.mint(user.address, utils.parseUnits("1000", "ether"));
+        await token1.mint(user.address, utils.parseUnits("1000", "ether"));
 
         token2 = await Token.deploy();
         await token2.deployed();
 
-        token2.mint(
+        await token2.mint(
             liquidityDistributor.address,
             utils.parseUnits("100000", "ether")
         );
-        token2.mint(user.address, utils.parseUnits("1000", "ether"));
+        await token2.mint(user.address, utils.parseUnits("1000", "ether"));
 
         const contracts = await deployUniswap(accounts);
         uniswapFactory = contracts.uniswapFactory;

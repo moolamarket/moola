@@ -18,44 +18,90 @@ import "../libraries/EthAddressLib.sol";
 contract CeloProxyPriceProvider is IPriceOracleGetter, Ownable {
     using SafeMath for uint256;
 
-    mapping(address => address) internal priceFeeds;
-    uint256 internal priceFeedsLengs;
+    mapping(uint256 => address) internal priceFeeds;
+    mapping(uint256 => address) internal assets;
+    uint256 internal priceFeedsLength;
 
     constructor(address[] memory _assets, address[] memory _priceFeeds) public {
-        require(_assets.length == _priceFeeds.length, "the quantity does not match");
+        require(
+            _assets.length == _priceFeeds.length,
+            "the quantity does not match"
+        );
         for (uint256 i = 0; i < _assets.length; i++) {
-            priceFeeds[_assets[i]] = _priceFeeds[i];
+            priceFeeds[i] = _priceFeeds[i];
+            assets[i] = _assets[i];
         }
-        priceFeedsLengs = _assets.length;
+        priceFeedsLength = _assets.length;
+    }
+
+    function updateAssets(address[] memory _assets, address[] memory _priceFeeds) public onlyOwner {
+        require(
+            _assets.length == _priceFeeds.length,
+            "the quantity does not match"
+        );
+        for (uint256 i = 0; i < _assets.length; i++) {
+            priceFeeds[i] = _priceFeeds[i];
+            assets[i] = _assets[i];
+        }
+        priceFeedsLength = _assets.length;
     }
 
     /// @notice Gets an asset price by address
     /// @param _asset The asset address
-    function getAssetPrice(address _asset) external view returns (uint256) {
+    function getAssetPrice(address _asset) public view returns (uint256) {
         if (_asset == EthAddressLib.ethAddress()) {
             return 1 ether;
         }
-        
-        return (IPriceFeed(priceFeeds[_asset]).consult());
+
+        uint256 assetId;
+        bool isExist;
+
+        for (uint256 i = 0; i < priceFeedsLength; i++) {
+            if (assets[i] == _asset) {
+                assetId = i;
+                isExist = true;
+            }
+        }
+
+        if (isExist) {
+            return (IPriceFeed(priceFeeds[assetId]).consult());
+        } else {
+            revert("asset not exist");
+        }
     }
 
     /// @notice Gets a list of prices from a list of assets addresses
     /// @param _assets The list of assets addresses
-    // function getAssetsPrices(address[] calldata _assets)
-    //     external
-    //     view
-    //     returns (uint256[] memory)
-    // {
-    //     uint256[] memory prices = new uint256[](_assets.length);
-    //     for (uint256 i = 0; i < _assets.length; i++) {
-    //         prices[i] = getAssetPrice(_assets[i]);
-    //     }
-    //     return prices;
-    // }
+    function getAssetsPrices(address[] memory _assets)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        uint256[] memory prices = new uint256[](_assets.length);
+        for (uint256 i = 0; i < _assets.length; i++) {
+            prices[i] = getAssetPrice(_assets[i]);
+        }
+
+        return prices;
+    }
 
     /// @notice Gets the address of the fallback oracle
     /// @return address The addres of the fallback oracle
-    function getPriceFeed(address _asset) external view returns (address) {
-        return priceFeeds[_asset];
+    function getPriceFeed(address _asset) public view returns (address) {
+        uint256 assetId;
+        bool isExist;
+
+        for (uint256 i = 0; i < priceFeedsLength; i++) {
+            if (assets[i] == _asset) {
+                assetId = i;
+                isExist = true;
+            }
+        }
+
+        if (isExist) {
+            return (priceFeeds[assetId]);
+        } else {
+            revert("asset not exist");
+        }
     }
 }
