@@ -17,12 +17,17 @@ interface IRegistry {
 
 contract UsingRegistry {
     bytes32 constant GOLD_TOKEN_REGISTRY_ID = keccak256(abi.encodePacked("GoldToken"));
+    bytes32 constant USD_TOKEN_REGISTRY_ID = keccak256(abi.encodePacked("StableToken"));
     bytes32 constant SORTED_ORACLES_REGISTRY_ID = keccak256(abi.encodePacked("SortedOracles"));
 
     IRegistry constant public registry = IRegistry(0x000000000000000000000000000000000000ce10);
 
     function getGoldToken() internal view returns (address) {
         return registry.getAddressForOrDie(GOLD_TOKEN_REGISTRY_ID);
+    }
+
+    function getUSDToken() internal view returns (address) {
+        return registry.getAddressForOrDie(USD_TOKEN_REGISTRY_ID);
     }
 
     function getSortedOracles() internal view returns (ISortedOracles) {
@@ -43,6 +48,8 @@ contract CeloProxyPriceProvider is IPriceOracleGetter, Ownable, UsingRegistry {
     event AssetSourceUpdated(address indexed asset, address indexed source);
     event FallbackOracleUpdated(address indexed fallbackOracle);
 
+    // Network agnostic stub for usd reserve.
+    address public constant USD_ADDRESS = 0x10F7Fc1F91Ba351f9C629c5947AD69bD03C05b96;
     IPriceOracleGetter private fallbackOracle;
 
     /// @notice Constructor
@@ -74,6 +81,9 @@ contract CeloProxyPriceProvider is IPriceOracleGetter, Ownable, UsingRegistry {
         }
         if (_asset == getGoldToken()) {
             return 1 ether;
+        }
+        if (_asset == USD_ADDRESS) {
+            _asset = getUSDToken();
         }
         uint256 _price;
         uint256 _divisor;
